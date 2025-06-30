@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Results</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Preview Results</h1>
+    <div class="screenshots">
+      <% results.forEach(result => { %>
+        <div class="screenshot-item">
+          <h2><%= result.name.replace(/_/g, ' ').toUpperCase() %></h2>
+          <img src="/screenshots/<%= result.filename %>" alt="<%= result.name %> preview">
+        </div>
+      <% }) %>
+    </div>
+    <a href="/" class="back-link">← Upload another email</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+# Dependencies
+# ----------------------------------------------------------------
+# Usually, you don't want to commit the node_modules directory to your repository
+/node_modules
+
+# Logs
+# ----------------------------------------------------------------
+# Log files are often specific to your local environment and not needed by others
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment variables
+# ----------------------------------------------------------------
+# Keep your sensitive information like API keys and database passwords out of the repository
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Production/build folder
+# ----------------------------------------------------------------
+# This folder is usually generated automatically during the build process
+/build
+/dist
+/out
+
+# System files
+# ----------------------------------------------------------------
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Optional files
+# ----------------------------------------------------------------
+# Ignore package lock files if you have a specific workflow, but it's
+# generally recommended to commit them. Uncomment if you want to ignore.
+# package-lock.json
+# yarn.lock

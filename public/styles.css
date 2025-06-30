@@ -1,0 +1,65 @@
+/* public/styles.css */
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 960px;
+  padding: 2rem;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+label,
+input,
+button {
+  margin: 0.5rem 0;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.screenshots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.screenshot-item {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.screenshot-item img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ccc;
+}
+
+.back-link {
+  display: block;
+  margin-top: 2rem;
+  text-align: center;
+  color: #333;
+  text-decoration: none;
+}

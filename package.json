@@ -1,0 +1,18 @@
+{
+  "name": "email-preview-ui",
+  "version": "1.0.0",
+  "description": "Self-hosted email preview app using Puppeteer",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "juice": "^9.0.0",
+    "multer": "^1.4.5-lts.1",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^24.7.2"
+  }
+}
