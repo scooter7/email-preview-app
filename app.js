@@ -7,7 +7,8 @@ const multer = require('multer');
 const juice = require('juice');
 // --- Vercel Puppeteer Setup ---
 const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chrome-aws-lambda');
+// Use the correct, stable package for serverless chromium
+const chromium = require('chrome-aws-lambda');
 // --- End Vercel Puppeteer Setup ---
 const pixelmatch = require('pixelmatch');
 const { PNG } = require('pngjs');
@@ -29,37 +30,37 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CLIENTS = [
   {
     name: 'desktop_chrome_windows',
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
     viewport: { width: 1366, height: 768 },
   },
   {
     name: 'desktop_edge_windows',
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.0.0',
     viewport: { width: 1440, height: 900 },
   },
   {
     name: 'desktop_safari_mac',
-    ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15',
+    ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
     viewport: { width: 1280, height: 800 },
   },
   {
     name: 'ios_iphone_13pro',
-    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15',
+    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/605.1.15',
     viewport: { width: 390, height: 844 },
   },
   {
     name: 'ios_iphone_se',
-    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15',
+    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/605.1.15',
     viewport: { width: 375, height: 667 },
   },
   {
     name: 'android_pixel_7',
-    ua: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+    ua: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Mobile Safari/537.36',
     viewport: { width: 412, height: 915 },
   },
   {
     name: 'android_samsung_s21',
-    ua: 'Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+    ua: 'Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Mobile Safari/537.36',
     viewport: { width: 360, height: 800 },
   },
 ];
