@@ -6,7 +6,8 @@ const os = require('os');
 const multer = require('multer');
 const juice = require('juice');
 const puppeteer = require('puppeteer-core');
-const chromium = require('chrome-aws-lambda');
+// Use the modern, maintained package for serverless chromium
+const chromium = require('@sparticuz/chrome-aws-lambda');
 const pixelmatch = require('pixelmatch');
 const { PNG } = require('pngjs');
 
@@ -27,18 +28,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CLIENTS = [
   {
     name: 'desktop_chrome_windows',
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
     viewport: { width: 1366, height: 768 },
   },
   {
     name: 'desktop_edge_windows',
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.0.0',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.0.0',
     viewport: { width: 1440, height: 900 },
-  },
-  {
-    name: 'desktop_safari_mac',
-    ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
-    viewport: { width: 1280, height: 800 },
   },
   {
     name: 'ios_iphone_13pro',
@@ -46,19 +42,9 @@ const CLIENTS = [
     viewport: { width: 390, height: 844 },
   },
   {
-    name: 'ios_iphone_se',
-    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/605.1.15',
-    viewport: { width: 375, height: 667 },
-  },
-  {
     name: 'android_pixel_7',
-    ua: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Mobile Safari/537.36',
+    ua: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
     viewport: { width: 412, height: 915 },
-  },
-  {
-    name: 'android_samsung_s21',
-    ua: 'Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Mobile Safari/537.36',
-    viewport: { width: 360, height: 800 },
   },
 ];
 
@@ -77,35 +63,15 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     const rawHtml = fs.readFileSync(uploadedFilePath, 'utf-8');
     const inlinedHtml = juice(rawHtml);
 
-    // --- Robust Browser Launch Logic ---
-    console.log('Checking for Chromium...');
-    let executablePath = await chromium.executablePath;
-
-    console.log(`Initial executablePath from chrome-aws-lambda: ${executablePath}`);
-
-    // If the path from chrome-aws-lambda is invalid, fall back to puppeteer's own browser fetcher.
-    if (!executablePath) {
-      console.log('Chromium path not found via lambda package, attempting to download...');
-      // **THE FIX IS HERE**: We must specify a writable path for the download.
-      const fetcher = puppeteer.createBrowserFetcher({
-        path: os.tmpdir(),
-      });
-      
-      const revisionInfo = await fetcher.download('901912'); // Revision compatible with puppeteer-core v10.4.0
-      executablePath = revisionInfo.executablePath;
-      console.log(`Downloaded Chromium to: ${executablePath}`);
-    }
-
-    console.log(`Final executablePath to be used: ${executablePath}`);
-    console.log('Launching browser...');
+    console.log('Attempting to launch browser...');
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: executablePath, // Use the path we found or downloaded
+      executablePath: await chromium.executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
-    // --- End Robust Browser Launch Logic ---
+    console.log('Browser launched successfully.');
 
     const results = [];
 
