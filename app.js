@@ -23,33 +23,83 @@ app.set('views', path.join(__dirname, 'views'));
 app.use('/screenshots', express.static(SCREENSHOT_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- Restored Full CLIENTS Array ---
 const CLIENTS = [
-    {
-        name: 'desktop_chrome_windows',
-        ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        viewport: { width: 1366, height: 768 },
-    },
-    {
-        name: 'desktop_edge_windows',
-        ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
-        viewport: { width: 1440, height: 900 },
-    },
-    {
-        name: 'ios_iphone_13pro',
-        ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15',
-        viewport: { width: 390, height: 844 },
-    },
-    {
-        name: 'android_pixel_7',
-        ua: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
-        viewport: { width: 412, height: 915 },
-    },
+  // --- Desktop Browsers (Current & Slightly Older) ---
+  {
+    name: 'desktop_chrome_windows',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    viewport: { width: 1366, height: 768 },
+  },
+  {
+    name: 'desktop_chrome_older_windows',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+    viewport: { width: 1366, height: 768 },
+  },
+  {
+    name: 'desktop_edge_windows',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
+    viewport: { width: 1440, height: 900 },
+  },
+   {
+    name: 'desktop_safari_mac', // UA Simulation
+    ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15',
+    viewport: { width: 1280, height: 800 },
+  },
+  {
+    name: 'desktop_firefox_windows', // UA Simulation (Needs launch config change for real Firefox)
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0',
+    viewport: { width: 1366, height: 768 },
+  },
+
+  // --- iOS Devices (iPhone Examples) ---
+   {
+    name: 'ios_iphone_13pro', // Simulating Mail/Safari on iOS (WebKit engine)
+    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15',
+    viewport: { width: 390, height: 844 },
+  },
+  {
+    name: 'ios_iphone_11', // Older popular model
+    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/605.1.15',
+    viewport: { width: 414, height: 896 },
+  },
+  {
+    name: 'ios_iphone_se', // Smaller screen
+    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15',
+    viewport: { width: 375, height: 667 },
+  },
+
+  // --- Android Devices (Examples) ---
+  {
+    name: 'android_pixel_7', // Simulating Mail/Chrome on Android (Blink engine)
+    ua: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+    viewport: { width: 412, height: 915 },
+  },
+   {
+    name: 'android_pixel_5', // Older popular model
+    ua: 'Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36',
+    viewport: { width: 393, height: 851 },
+  },
+  {
+    name: 'android_samsung_s21', // Popular manufacturer
+    ua: 'Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+    viewport: { width: 360, height: 800 },
+  },
+
+  // --- Tablet Example ---
+  {
+    name: 'ios_ipad_pro_12_9', // Simulating Safari/Mail on iPadOS
+    ua: 'Mozilla/5.0 (iPad; CPU OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15',
+    viewport: { width: 1024, height: 1366 },
+  }
 ];
 
+// home form
 app.get('/', (req, res) => {
   res.render('index');
 });
 
+// handle upload & preview
 app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
   if (!req.file) {
     return res.status(400).send('No email file uploaded.');
@@ -63,7 +113,6 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
 
     console.log('Attempting to launch browser...');
     browser = await puppeteer.launch({
-      // Tell Puppeteer to use the Chrome binary we installed in the Dockerfile
       executablePath: '/usr/bin/google-chrome-stable',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
@@ -137,7 +186,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong. Check server logs for details.');
 });
 
-// The PORT will be provided by Railway, but we keep the local fallback.
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Email Preview UI running on port ${PORT}`);
