@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const os = require('os'); // Required to find the system's temporary directory
 const multer = require('multer');
 const juice = require('juice');
 const puppeteer = require('puppeteer');
@@ -9,17 +10,26 @@ const pixelmatch = require('pixelmatch');
 const { PNG } = require('pngjs');
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
 
-// ensure screenshot folder exists
-const SCREENSHOT_DIR = path.join(__dirname, 'public', 'screenshots');
+// --- Vercel-Compatible File Handling ---
+// Use the /tmp directory for all file storage, as it's the only writable location in a Vercel serverless function.
+const UPLOAD_DIR = path.join(os.tmpdir(), 'uploads');
+const SCREENSHOT_DIR = path.join(os.tmpdir(), 'screenshots');
+
+// Ensure these temporary directories exist.
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+
+const upload = multer({ dest: UPLOAD_DIR });
+
 
 // configure view engine & static files
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use('/screenshots', express.static(SCREENSHOT_DIR));
+// Serve static files like CSS from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+// Note: We can no longer serve screenshots statically from SCREENSHOT_DIR as it's in /tmp.
+// They will be embedded as base64 strings instead.
 
 // --- Start: Expanded CLIENTS Array ---
 // Define desktop, iOS, and Android client permutations
@@ -33,11 +43,6 @@ const CLIENTS = [
     viewport: { width: 1366, height: 768 },
   },
   {
-    name: 'desktop_chrome_older_windows',
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36', // Example Older Chrome UA
-    viewport: { width: 1366, height: 768 },
-  },
-  {
     name: 'desktop_edge_windows',
     ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0', // Example Edge UA
     viewport: { width: 1440, height: 900 },
@@ -47,22 +52,11 @@ const CLIENTS = [
     ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15', // Example Safari Mac UA
     viewport: { width: 1280, height: 800 },
   },
-  {
-    name: 'desktop_firefox_windows', // UA Simulation (Needs launch config change for real Firefox)
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0', // Example Firefox UA
-    viewport: { width: 1366, height: 768 },
-  },
-
   // --- iOS Devices (iPhone Examples) ---
    {
     name: 'ios_iphone_13pro', // Simulating Mail/Safari on iOS (WebKit engine)
     ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15', // Example iPhone Safari UA
     viewport: { width: 390, height: 844 }, // iPhone 13 Pro logical resolution
-  },
-  {
-    name: 'ios_iphone_11', // Older popular model
-    ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/605.1.15', // Example iPhone 11/iOS 15 UA
-    viewport: { width: 414, height: 896 }, // iPhone 11 logical resolution
   },
   {
     name: 'ios_iphone_se', // Smaller screen
@@ -77,22 +71,10 @@ const CLIENTS = [
     viewport: { width: 412, height: 915 }, // Pixel 7 logical resolution
   },
    {
-    name: 'android_pixel_5', // Older popular model
-    ua: 'Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36', // Example Pixel 5/Android 12 UA
-    viewport: { width: 393, height: 851 }, // Pixel 5 logical resolution
-  },
-  {
     name: 'android_samsung_s21', // Popular manufacturer
     ua: 'Mozilla/5.0 (Linux; Android 13; SM-G991U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36', // Example Samsung UA
     viewport: { width: 360, height: 800 }, // Galaxy S21 logical resolution
   },
-
-  // --- Tablet Example ---
-  {
-    name: 'ios_ipad_pro_12_9', // Simulating Safari/Mail on iPadOS
-    ua: 'Mozilla/5.0 (iPad; CPU OS 16_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/605.1.15', // Example iPadOS UA
-    viewport: { width: 1024, height: 1366 }, // iPad Pro 12.9" logical resolution
-  }
 ];
 // --- End: Expanded CLIENTS Array ---
 
@@ -108,17 +90,19 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     return res.status(400).send('No email file uploaded.');
   }
   const uploadedFilePath = req.file.path;
+  let browser;
 
   try {
     const rawHtml = fs.readFileSync(uploadedFilePath, 'utf-8');
     const inlinedHtml = juice(rawHtml);
 
     console.log('Launching browser...');
-    // To use Firefox for profiles named '...firefox...', you'd need logic here:
-    // const product = client.name.includes('firefox') ? 'firefox' : 'chrome';
-    // const browser = await puppeteer.launch({ product }); // Needs PUPPETEER_PRODUCT env var set during install for Firefox
-    const browser = await puppeteer.launch(); // Sticking to default (Chromium) for now
+    // Launch Puppeteer with args recommended for serverless environments
+    browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
     const results = [];
+    const generatedFiles = []; // Keep track of files to delete
 
     for (const client of CLIENTS) {
       console.log(`Processing client: ${client.name}`);
@@ -131,13 +115,19 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
 
           const filename = `${client.name}_${Date.now()}.png`;
           const outPath = path.join(SCREENSHOT_DIR, filename);
+          generatedFiles.push(outPath); // Add to cleanup list
+
           console.log(`  Taking screenshot for ${client.name}...`);
           await page.screenshot({ path: outPath, fullPage: true });
 
-          results.push({ name: client.name, filename });
+          // Read the file and convert to base64 data URI
+          const imageBuffer = fs.readFileSync(outPath);
+          const imageData = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
+          results.push({ name: client.name, imageData: imageData, path: outPath }); // Store path for diffing
       } catch(pageError) {
           console.error(`  Error processing page for ${client.name}: ${pageError.message}`);
-          results.push({ name: `${client.name} (Error)`, filename: null, error: pageError.message });
+          results.push({ name: `${client.name} (Error)`, imageData: null, error: pageError.message });
       } finally {
           console.log(`  Closing page for ${client.name}...`);
           await page.close();
@@ -145,10 +135,10 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     }
 
     // Diff logic - currently compares the *first two* clients in the CLIENTS array
-    if (results.length >= 2 && results[0].filename && results[1].filename) {
+    if (results.length >= 2 && results[0].path && results[1].path) {
       const [a, b] = results;
-      const imgAPath = path.join(SCREENSHOT_DIR, a.filename);
-      const imgBPath = path.join(SCREENSHOT_DIR, b.filename);
+      const imgAPath = a.path;
+      const imgBPath = b.path;
       console.log(`Attempting to compare ${a.name} and ${b.name}...`);
       try {
           const imgA = PNG.sync.read(fs.readFileSync(imgAPath));
@@ -159,9 +149,16 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
               console.log(`  Comparing ${a.name} (${width}x${height}) and ${b.name} (${width}x${height})...`);
               const numDiffPixels = pixelmatch(imgA.data, imgB.data, diff.data, width, height, { threshold: 0.1 });
               console.log(`  Pixelmatch found ${numDiffPixels} differing pixels.`);
+
               const diffName = `${a.name}_vs_${b.name}_diff_${Date.now()}.png`;
-              fs.writeFileSync(path.join(SCREENSHOT_DIR, diffName), PNG.sync.write(diff));
-              results.push({ name: `diff (${a.name} vs ${b.name})`, filename: diffName });
+              const diffPath = path.join(SCREENSHOT_DIR, diffName);
+              generatedFiles.push(diffPath); // Add to cleanup list
+
+              fs.writeFileSync(diffPath, PNG.sync.write(diff));
+
+              const diffBuffer = fs.readFileSync(diffPath);
+              const diffImageData = `data:image/png;base64,${diffBuffer.toString('base64')}`;
+              results.push({ name: `diff (${a.name} vs ${b.name})`, imageData: diffImageData });
           } else {
               console.warn(`  Skipping pixel comparison between ${a.name} and ${b.name}: Image dimensions do not match (${imgA.width}x${imgA.height} vs ${imgB.width}x${imgB.height})`);
           }
@@ -174,19 +171,27 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
 
     console.log('Closing browser...');
     await browser.close();
+    browser = null;
 
     res.render('result', { results });
 
   } catch (err) {
     next(err);
   } finally {
-      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
-        console.log(`Cleaning up uploaded file: ${uploadedFilePath}`);
-        try {
-            fs.unlinkSync(uploadedFilePath);
-        } catch (unlinkErr) {
-            console.error(`Error cleaning up uploaded file: ${unlinkErr.message}`);
-        }
+      if (browser) {
+        await browser.close();
+      }
+      // Cleanup all generated files from /tmp
+      const filesToClean = [uploadedFilePath, ...fs.readdirSync(SCREENSHOT_DIR).map(f => path.join(SCREENSHOT_DIR, f))];
+      for (const file of filesToClean) {
+          if (file && fs.existsSync(file)) {
+              console.log(`Cleaning up temporary file: ${file}`);
+              try {
+                  fs.unlinkSync(file);
+              } catch (unlinkErr) {
+                  console.error(`Error cleaning up temporary file: ${unlinkErr.message}`);
+              }
+          }
       }
   }
 });
