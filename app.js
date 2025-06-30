@@ -81,17 +81,22 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     console.log('Checking for Chromium...');
     let executablePath = await chromium.executablePath;
 
-    console.log(`Initial executablePath: ${executablePath}`);
+    console.log(`Initial executablePath from chrome-aws-lambda: ${executablePath}`);
 
     // If the path from chrome-aws-lambda is invalid, fall back to puppeteer's own browser fetcher.
     if (!executablePath) {
-      console.log('Chromium path not found, attempting to download...');
-      const fetcher = puppeteer.createBrowserFetcher();
+      console.log('Chromium path not found via lambda package, attempting to download...');
+      // **THE FIX IS HERE**: We must specify a writable path for the download.
+      const fetcher = puppeteer.createBrowserFetcher({
+        path: os.tmpdir(),
+      });
+      
       const revisionInfo = await fetcher.download('901912'); // Revision compatible with puppeteer-core v10.4.0
       executablePath = revisionInfo.executablePath;
       console.log(`Downloaded Chromium to: ${executablePath}`);
     }
 
+    console.log(`Final executablePath to be used: ${executablePath}`);
     console.log('Launching browser...');
     browser = await puppeteer.launch({
       args: chromium.args,
