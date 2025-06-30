@@ -84,7 +84,6 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      // CORRECTED LINE: executablePath is a property, not a function.
       executablePath: await chromium.executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
