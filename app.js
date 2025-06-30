@@ -6,7 +6,7 @@ const os = require('os');
 const multer = require('multer');
 const juice = require('juice');
 const puppeteer = require('puppeteer-core');
-const chromium = require('chrome-aws-lambda'); // Using the correct package name
+const chromium = require('chrome-aws-lambda');
 const pixelmatch = require('pixelmatch');
 const { PNG } = require('pngjs');
 
@@ -77,14 +77,30 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     const rawHtml = fs.readFileSync(uploadedFilePath, 'utf-8');
     const inlinedHtml = juice(rawHtml);
 
+    // --- Robust Browser Launch Logic ---
+    console.log('Checking for Chromium...');
+    let executablePath = await chromium.executablePath;
+
+    console.log(`Initial executablePath: ${executablePath}`);
+
+    // If the path from chrome-aws-lambda is invalid, fall back to puppeteer's own browser fetcher.
+    if (!executablePath) {
+      console.log('Chromium path not found, attempting to download...');
+      const fetcher = puppeteer.createBrowserFetcher();
+      const revisionInfo = await fetcher.download('901912'); // Revision compatible with puppeteer-core v10.4.0
+      executablePath = revisionInfo.executablePath;
+      console.log(`Downloaded Chromium to: ${executablePath}`);
+    }
+
     console.log('Launching browser...');
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
+      executablePath: executablePath, // Use the path we found or downloaded
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
+    // --- End Robust Browser Launch Logic ---
 
     const results = [];
 
