@@ -6,9 +6,7 @@ const os = require('os');
 const multer = require('multer');
 const juice = require('juice');
 // --- Vercel Puppeteer Setup ---
-// Use puppeteer-core, which is a lightweight version of Puppeteer.
 const puppeteer = require('puppeteer-core');
-// Use a community-maintained package that provides a Chromium binary for serverless environments.
 const chromium = require('@sparticuz/chrome-aws-lambda');
 // --- End Vercel Puppeteer Setup ---
 const pixelmatch = require('pixelmatch');
@@ -86,7 +84,8 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      // CORRECTED LINE: executablePath is a property, not a function.
+      executablePath: await chromium.executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
@@ -167,11 +166,19 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     // Cleanup all generated files from /tmp
     const filesInUploads = fs.readdirSync(UPLOAD_DIR);
     for (const file of filesInUploads) {
-        fs.unlinkSync(path.join(UPLOAD_DIR, file));
+        try {
+            fs.unlinkSync(path.join(UPLOAD_DIR, file));
+        } catch (e) {
+            console.error(`Failed to delete upload file: ${e.message}`);
+        }
     }
     const filesInScreenshots = fs.readdirSync(SCREENSHOT_DIR);
     for (const file of filesInScreenshots) {
-        fs.unlinkSync(path.join(SCREENSHOT_DIR, file));
+        try {
+            fs.unlinkSync(path.join(SCREENSHOT_DIR, file));
+        } catch(e) {
+            console.error(`Failed to delete screenshot file: ${e.message}`);
+        }
     }
   }
 });
