@@ -5,11 +5,8 @@ const fs = require('fs');
 const os = require('os');
 const multer = require('multer');
 const juice = require('juice');
-// --- Vercel Puppeteer Setup ---
 const puppeteer = require('puppeteer-core');
-// Use the correct, stable package for serverless chromium
-const chromium = require('chrome-aws-lambda');
-// --- End Vercel Puppeteer Setup ---
+const chromium = require('chrome-aws-lambda'); // Using the correct package name
 const pixelmatch = require('pixelmatch');
 const { PNG } = require('pngjs');
 
@@ -81,7 +78,6 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
     const inlinedHtml = juice(rawHtml);
 
     console.log('Launching browser...');
-    // --- Vercel-Compatible Browser Launch ---
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
@@ -89,7 +85,6 @@ app.post('/preview', upload.single('emailFile'), async (req, res, next) => {
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
-    // --- End Vercel-Compatible Browser Launch ---
 
     const results = [];
 
