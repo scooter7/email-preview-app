@@ -1,19 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email Preview Uploader</title>
-  <link rel="stylesheet" href="/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email & URL Previewer</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Additional styles for the new form layout */
+        .form-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        .radio-group {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .radio-group label {
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Important for padding and width */
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* Initially hide both input sections */
+        #file-input-section, #url-input-section {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Email Preview</h1>
-    <form action="/preview" method="post" enctype="multipart/form-data">
-      <label for="emailFile">Select HTML email file:</label>
-      <input type="file" id="emailFile" name="emailFile" accept=".html" required>
-      <button type="submit">Generate Previews</button>
-    </form>
-  </div>
+    <div class="form-container">
+        <h1>Cross-Device Previewer</h1>
+        
+        <form action="/preview" method="POST" enctype="multipart/form-data">
+            
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="previewType" value="file" checked onchange="toggleInput('file')">
+                    Upload HTML File
+                </label>
+                <label>
+                    <input type="radio" name="previewType" value="url" onchange="toggleInput('url')">
+                    Enter URL
+                </label>
+            </div>
+
+            <div id="file-input-section" class="input-group">
+                <label for="emailFile">Choose an HTML file:</label>
+                <input type="file" id="emailFile" name="emailFile" accept=".html,.htm">
+            </div>
+
+            <div id="url-input-section" class="input-group">
+                <label for="webUrl">Enter a public URL:</label>
+                <input type="text" id="webUrl" name="webUrl" placeholder="e.g., google.com">
+            </div>
+
+            <button type="submit">Generate Previews</button>
+        </form>
+    </div>
+
+    <script>
+        // JavaScript to toggle which input field is visible
+        function toggleInput(type) {
+            const fileSection = document.getElementById('file-input-section');
+            const urlSection = document.getElementById('url-input-section');
+            if (type === 'file') {
+                fileSection.style.display = 'block';
+                urlSection.style.display = 'none';
+            } else {
+                fileSection.style.display = 'none';
+                urlSection.style.display = 'block';
+            }
+        }
+        // Set the initial state when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleInput('file');
+        });
+    </script>
 </body>
 </html>
